@@ -10,6 +10,7 @@ import ru.yandex.practicum.catsgram.exceptions.PostNotFoundException;
 import ru.yandex.practicum.catsgram.exceptions.UserNotFoundException;
 import ru.yandex.practicum.catsgram.model.Post;
 import ru.yandex.practicum.catsgram.model.User;
+import ru.yandex.practicum.catsgram.utils.ServicesUtils;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -25,25 +26,26 @@ public class PostService {
     }
 
     public List<Post> findAll(Integer size, String sort, Integer page) {
-        if(!(sort.equals("asc") || sort.equals("desc"))){
-            throw new IllegalArgumentException();
-        }
-        if(page < 0 || size <= 0){
-            throw new IllegalArgumentException();
-        }
-
-        int from = page * size;
-
-        return posts.stream().sorted((p0, p1) -> {
-                        int comp = p0.getCreationDate().compareTo(p1.getCreationDate()); //прямой порядок сортировки
-                        if(sort.equals("desc")){
-                            comp = -1 * comp; //обратный порядок сортировки
-                        }
-                        return comp;
-                    })
-                .skip(from)
-                .limit(size)
-                .collect(Collectors.toList());
+        return ServicesUtils.findAll(posts, size, sort, page);
+//        if(!(sort.equals("asc") || sort.equals("desc"))){
+//            throw new IllegalArgumentException();
+//        }
+//        if(page < 0 || size <= 0){
+//            throw new IllegalArgumentException();
+//        }
+//
+//        int from = page * size;
+//
+//        return posts.stream().sorted((p0, p1) -> {
+//                        int comp = p0.getCreationDate().compareTo(p1.getCreationDate()); //прямой порядок сортировки
+//                        if(sort.equals("desc")){
+//                            comp = -1 * comp; //обратный порядок сортировки
+//                        }
+//                        return comp;
+//                    })
+//                .skip(from)
+//                .limit(size)
+//                .collect(Collectors.toList());
     }
 
     public Post create(Post post) {
@@ -68,24 +70,13 @@ public class PostService {
     public List<Post> getAllFriendsPosts(String request, Integer size, String sort, Integer page) {
         List<Post> friendsPosts = new ArrayList<>();
         String[] friends = request.split(",");
-        List<Post> allPosts = findAll(size, sort, page);
 
-//        ObjectMapper objectMapper = new ObjectMapper();
-
-//        try {
-//            List<String> friendsEmails = objectMapper.readValue(friends, new TypeReference<List<String>>(){});
-//            for (String friend: friendsEmails) {
-//                friendsPosts.addAll(posts.stream().filter(user -> user.getAuthor().equals(friend)).collect(Collectors.toList()));
-//            }
-//        } catch (JsonProcessingException e) {
-//            throw new RuntimeException("Не верный запрос для ленты постов: " + request);
-//        }
             for (String friend: friends) {
-                friendsPosts.addAll(allPosts.stream()
+                friendsPosts.addAll(posts.stream()
                         .filter(user -> user.getAuthor().equals(friend))
                         .collect(Collectors.toList()));
             }
 
-        return friendsPosts;
+        return ServicesUtils.findAll(friendsPosts, size, sort, page);
     }
 }
