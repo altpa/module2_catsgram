@@ -1,7 +1,11 @@
 package ru.yandex.practicum.catsgram.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.RequestParam;
 import ru.yandex.practicum.catsgram.exceptions.PostNotFoundException;
 import ru.yandex.practicum.catsgram.exceptions.UserNotFoundException;
 import ru.yandex.practicum.catsgram.model.Post;
@@ -31,44 +35,22 @@ public class PostService {
         int from = page * size;
 
         return posts.stream().sorted((p0, p1) -> {
-            int comp = p0.getCreationDate().compareTo(p1.getCreationDate()); //прямой порядок сортировки
-            if(sort.equals("desc")){
-                comp = -1 * comp; //обратный порядок сортировки
-            }
-            return comp;
-        }).skip(from).limit(size).collect(Collectors.toList());
-
-//        posts.sort((post1, post2) -> {
-//            int result = 1;
-//            if (post1.getCreationDate().isAfter(post2.getCreationDate())) {
-//                result = -1;
-//            }
-//            if (post1.getCreationDate().equals(post2.getCreationDate())) {
-//                result = 0;
-//            }
-//
-//            if (sort.equals("asc")) {
-//                return result;
-//            } else return result * -1;
-//        });
-//
-//            Map<Integer, List<Post>> pages = new HashMap<>();
-//            Integer pageCounter = 1;
-//            if (size < posts.size()) {
-//                for (int i = size; i < posts.size(); i += size) {
-//                    pages.put(pageCounter, posts.subList(0,i));
-//                    pageCounter++;
-//                }
-//                return pages.get(page);
-//            }
-//            return posts;
+                        int comp = p0.getCreationDate().compareTo(p1.getCreationDate()); //прямой порядок сортировки
+                        if(sort.equals("desc")){
+                            comp = -1 * comp; //обратный порядок сортировки
+                        }
+                        return comp;
+                    })
+                .skip(from)
+                .limit(size)
+                .collect(Collectors.toList());
     }
 
     public Post create(Post post) {
         User user = userService.findUserByEmail(post.getAuthor());
         if (user != null) {
-        posts.add(post);
-        return post;
+            posts.add(post);
+            return post;
         } else {
             throw new UserNotFoundException("Пользователь " + post.getAuthor() + " не найден");
         }
@@ -81,5 +63,29 @@ public class PostService {
             }
         }
         throw new PostNotFoundException("Пост с id: " + id + " не найден");
+    }
+
+    public List<Post> getAllFriendsPosts(String request, Integer size, String sort, Integer page) {
+        List<Post> friendsPosts = new ArrayList<>();
+        String[] friends = request.split(",");
+        List<Post> allPosts = findAll(size, sort, page);
+
+//        ObjectMapper objectMapper = new ObjectMapper();
+
+//        try {
+//            List<String> friendsEmails = objectMapper.readValue(friends, new TypeReference<List<String>>(){});
+//            for (String friend: friendsEmails) {
+//                friendsPosts.addAll(posts.stream().filter(user -> user.getAuthor().equals(friend)).collect(Collectors.toList()));
+//            }
+//        } catch (JsonProcessingException e) {
+//            throw new RuntimeException("Не верный запрос для ленты постов: " + request);
+//        }
+            for (String friend: friends) {
+                friendsPosts.addAll(allPosts.stream()
+                        .filter(user -> user.getAuthor().equals(friend))
+                        .collect(Collectors.toList()));
+            }
+
+        return friendsPosts;
     }
 }
